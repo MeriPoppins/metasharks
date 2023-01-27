@@ -15,7 +15,24 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from rest_framework.routers import SimpleRouter
+
+from study.api.v1.courses import CourseViewSet, SubjectViewSet, StudyGroupViewSet
+from study.api.v1.users import UserViewSet, TutorViewSet, StudentViewSet
+
+
+router = SimpleRouter()
+
+router.register('api/v1/users', UserViewSet)
+router.register('api/v1/tutors', TutorViewSet)
+router.register('api/v1/students', StudentViewSet)
+router.register('api/v1/courses', CourseViewSet)
+router.register('api/v1/subjects', SubjectViewSet)
+router.register('api/v1/study_groups', StudyGroupViewSet)
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 ]
+
+urlpatterns += router.urls
