@@ -6,7 +6,7 @@ from .models import User, Tutor, Student, StudyGroup, Subject, Course
 class UserSerializer(ModelSerializer):
     class Meta:
         model = User
-        fields = ('first_name', 'last_name')
+        fields = ('id', 'first_name', 'last_name')
 
 
 class TutorSerializer(ModelSerializer):
@@ -27,7 +27,7 @@ class CourseSerializer(ModelSerializer):
     subjects = SubjectSerializer(many=True)
     class Meta: 
         model = Course
-        fields = ('name', 'tutor', 'subjects')
+        fields = ('id', 'name', 'tutor', 'subjects')
 
 
 class StudyGroupSerializer(ModelSerializer):

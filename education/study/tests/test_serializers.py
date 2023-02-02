@@ -1,16 +1,17 @@
 from django.test import TestCase
 
-from study.models import User, Tutor, Student, StudyGroup, Subject, Course
+from study.models import User, Tutor, Student, StudyGroup, Subject, Course, Role, Gender
 from study.selializers import UserSerializer, TutorSerializer, SubjectSerializer, CourseSerializer,\
                             StudyGroupSerializer, StudentSerializer
 
 
 class UsersSerializersTestCase(TestCase):
     def test_ok(self):
-        user = User.objects.create(username='user1', first_name='Ivan', last_name='Petrov')
+        user = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Petrov', role=Role.ADMIN)
         data = UserSerializer([user], many=True).data
         expected_data = [
             {
+                'id': user.id,
                 'first_name': 'Ivan',
                 'last_name': 'Petrov'
             }
@@ -20,12 +21,13 @@ class UsersSerializersTestCase(TestCase):
 
 class TutorSerializersTestCase(TestCase):
     def test_ok(self):
-        user = User.objects.create(username='user1', first_name='Ivan', last_name='Petrov')
+        user = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Petrov', role=Role.TUTOR)
         tutor = Tutor.objects.create(user_id=user.id)
         data = TutorSerializer([tutor], many=True).data
         expected_data = [
             {
                 'user': {
+                    'id': user.id,
                     'first_name': 'Ivan',
                     'last_name': 'Petrov'
                 }
@@ -49,7 +51,7 @@ class SubjectSerializerTestCase(TestCase):
 
 class CourseSerializerTestCase(TestCase):
     def test_ok(self):
-        user = User.objects.create(username='user1', first_name='Ivan', last_name='Petrov')
+        user = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Petrov', role=Role.TUTOR)
         tutor = Tutor.objects.create(user_id=user.id)
 
         subject1 = Subject.objects.create(name='Социология')
@@ -61,9 +63,11 @@ class CourseSerializerTestCase(TestCase):
         data = CourseSerializer([course], many=True).data
         expected_data = [
             {
+                'id': course.id,
                 'name': 'Психология',
                 'tutor': {
                     'user': {
+                        'id': user.id,
                         'first_name': 'Ivan',
                         'last_name': 'Petrov'
                     }
@@ -85,7 +89,7 @@ class CourseSerializerTestCase(TestCase):
 
 class StudyGroupSerializerTestCase(TestCase):
     def test_ok(self):
-        user = User.objects.create(username='user1', first_name='Ivan', last_name='Petrov')
+        user = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Petrov', role=Role.TUTOR)
         tutor = Tutor.objects.create(user_id=user.id)
 
         subject1 = Subject.objects.create(name='Социология')
@@ -101,9 +105,11 @@ class StudyGroupSerializerTestCase(TestCase):
             {
                 'name': 'q-2',
                 'course': {
+                    'id': course.id,
                     'name': 'Психология',
                     'tutor': {
                         'user': {
+                            'id': user.id,
                             'first_name': 'Ivan',
                             'last_name': 'Petrov'
                         }
@@ -125,8 +131,8 @@ class StudyGroupSerializerTestCase(TestCase):
 
 class StudentSerializerTestCase(TestCase):
     def test_ok(self):
-        user1 = User.objects.create(username='user1', first_name='Ivan', last_name='Petrov')
-        user2 = User.objects.create(username='user2', first_name='Ivan', last_name='Sidorov')
+        user1 = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Petrov', role=Role.TUTOR)
+        user2 = User.objects.create(username='user2', password='user2', first_name='Ivan', last_name='Sidorov', role=Role.STUDENT)
         tutor = Tutor.objects.create(user_id=user1.id)
 
         subject1 = Subject.objects.create(name='Социология')
@@ -136,12 +142,13 @@ class StudentSerializerTestCase(TestCase):
         course.subjects.add(subject2)
 
         study_group = StudyGroup.objects.create(name='q-2', course_id=course.id)
-        student = Student.objects.create(user_id=user2.id, gender='MALE', study_group_id=study_group.id)
+        student = Student.objects.create(user_id=user2.id, gender=Gender.MALE, study_group_id=study_group.id)
 
         data = StudentSerializer([student], many=True).data
         expected_data = [
             {
                 'user': {
+                    'id': user2.id,
                     'first_name': 'Ivan',
                     'last_name': 'Sidorov'
                 },
@@ -149,9 +156,11 @@ class StudentSerializerTestCase(TestCase):
                 'study_group': {
                     'name': 'q-2',
                     'course': {
+                        'id': course.id,
                         'name': 'Психология',
                         'tutor': {
                             'user': {
+                                'id': user1.id,
                                 'first_name': 'Ivan',
                                 'last_name': 'Petrov'
                             }
