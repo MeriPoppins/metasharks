@@ -1,8 +1,8 @@
 from django.test import TestCase
 
 from study.models import User, Tutor, Student, StudyGroup, Subject, Course, Role, Gender
-from study.selializers import UserSerializer, TutorSerializer, SubjectSerializer, CourseSerializer,\
-                            StudyGroupSerializer, StudentSerializer
+from study.selializers import UserSerializer, TutorReadSerializer, TutorWriteSerializer, SubjectSerializer,\
+                            CourseSerializer, StudyGroupSerializer, StudentReadSerializer, StudentWriteSerializer
 
 
 class UsersSerializersTestCase(TestCase):
@@ -19,11 +19,11 @@ class UsersSerializersTestCase(TestCase):
         self.assertEqual(expected_data, data)
 
 
-class TutorSerializersTestCase(TestCase):
+class TutorReadSerializersTestCase(TestCase):
     def test_ok(self):
         user = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Petrov', role=Role.TUTOR)
         tutor = Tutor.objects.create(user_id=user.id)
-        data = TutorSerializer([tutor], many=True).data
+        data = TutorReadSerializer([tutor], many=True).data
         expected_data = [
             {
                 'user': {
@@ -31,6 +31,19 @@ class TutorSerializersTestCase(TestCase):
                     'first_name': 'Ivan',
                     'last_name': 'Petrov'
                 }
+            }
+        ]
+        self.assertEqual(expected_data, data)
+
+
+class TutorWriteSerializersTestCase(TestCase):
+    def test_ok(self):
+        user = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Petrov', role=Role.TUTOR)
+        tutor = Tutor.objects.create(user_id=user.id)
+        data = TutorWriteSerializer([tutor], many=True).data
+        expected_data = [
+            {
+                'user': user.id,
             }
         ]
         self.assertEqual(expected_data, data)
@@ -129,7 +142,7 @@ class StudyGroupSerializerTestCase(TestCase):
         ]
         self.assertEqual(expected_data, data)
 
-class StudentSerializerTestCase(TestCase):
+class StudentReadSerializerTestCase(TestCase):
     def test_ok(self):
         user1 = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Petrov', role=Role.TUTOR)
         user2 = User.objects.create(username='user2', password='user2', first_name='Ivan', last_name='Sidorov', role=Role.STUDENT)
@@ -144,7 +157,7 @@ class StudentSerializerTestCase(TestCase):
         study_group = StudyGroup.objects.create(name='q-2', course_id=course.id)
         student = Student.objects.create(user_id=user2.id, gender=Gender.MALE, study_group_id=study_group.id)
 
-        data = StudentSerializer([student], many=True).data
+        data = StudentReadSerializer([student], many=True).data
         expected_data = [
             {
                 'user': {
@@ -177,6 +190,22 @@ class StudentSerializerTestCase(TestCase):
                         ]
                     }
                 }
+            }
+        ]
+        self.assertEqual(expected_data, data)
+
+
+class StudentWriteSerializerTestCase(TestCase):
+    def test_ok(self):
+        user = User.objects.create(username='user', password='user', first_name='Ivan', last_name='Sidorov', role=Role.STUDENT)
+        student = Student.objects.create(user_id=user.id, gender=Gender.MALE, study_group_id=None)
+
+        data = StudentWriteSerializer([student], many=True).data
+        expected_data = [
+            {
+                'user': user.id,
+                'gender': 'MALE',
+                'study_group': None
             }
         ]
         self.assertEqual(expected_data, data)

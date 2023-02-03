@@ -9,8 +9,14 @@ class UserSerializer(ModelSerializer):
         fields = ('id', 'first_name', 'last_name')
 
 
-class TutorSerializer(ModelSerializer):
+class TutorReadSerializer(ModelSerializer):
     user = UserSerializer()
+    class Meta:
+        model = Tutor
+        fields = ('user', )
+
+
+class TutorWriteSerializer(ModelSerializer):
     class Meta:
         model = Tutor
         fields = ('user', )
@@ -23,7 +29,7 @@ class SubjectSerializer(ModelSerializer):
 
 
 class CourseSerializer(ModelSerializer):
-    tutor = TutorSerializer()
+    tutor = TutorReadSerializer()
     subjects = SubjectSerializer(many=True)
     class Meta: 
         model = Course
@@ -37,9 +43,15 @@ class StudyGroupSerializer(ModelSerializer):
         fields = ('name', 'course')
 
 
-class StudentSerializer(ModelSerializer):
+class StudentReadSerializer(ModelSerializer):
     user = UserSerializer()
     study_group = StudyGroupSerializer()
+    class Meta:
+        model = Student
+        fields = ('user', 'gender', 'study_group')
+
+
+class StudentWriteSerializer(ModelSerializer):
     class Meta:
         model = Student
         fields = ('user', 'gender', 'study_group')

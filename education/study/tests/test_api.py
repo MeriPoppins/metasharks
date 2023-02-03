@@ -4,50 +4,265 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from study.models import User, Tutor, Student, StudyGroup, Subject, Course, Role, Gender
-from study.selializers import UserSerializer, TutorSerializer, SubjectSerializer, CourseSerializer,\
-                            StudyGroupSerializer, StudentSerializer
+from study.selializers import UserSerializer, TutorReadSerializer, SubjectSerializer,\
+                            CourseSerializer, StudyGroupSerializer, StudentReadSerializer
 
 
-# class UsersApiTestCase(APITestCase):
-#     def test_get_list(self):
-#         user = User.objects.create(username='user1', first_name='Ivan', last_name='Petrov')
-#         url = reverse('user-list')
-#         response = self.client.get(url)
-#         serializer_data = UserSerializer([user], many=True).data
-#         self.assertEqual(status.HTTP_200_OK, response.status_code)
-#         self.assertEqual(serializer_data, response.data)
+class UsersApiTestCase(APITestCase):
+    def setUp(self):
+        self.user_owner = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Petrov', role=Role.ADMIN)
+        self.user_not_owner = User.objects.create(username='user2', password='user2', first_name='Ivan', last_name='Sidorov', role=Role.ADMIN)
 
-# class TutorApiTestCase(APITestCase):
-#     def test_get_list(self):
-#         user = User.objects.create(username='user1', first_name='Ivan', last_name='Petrov')
-#         tutor = Tutor.objects.create(user_id=user.id)
-#         url = reverse('tutor-list')
-#         response = self.client.get(url)
-#         serializer_data = TutorSerializer([tutor], many=True).data
-#         self.assertEqual(status.HTTP_200_OK, response.status_code)
-#         self.assertEqual(serializer_data, response.data)
+    def test_get_list(self):
+        url = reverse('user-list')
+        response = self.client.get(url)
+        serializer_data = UserSerializer([self.user_owner, self.user_not_owner], many=True).data
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        self.assertEqual(serializer_data, response.data)
+
+    def test_get_item(self):
+        url = reverse('user-detail', args=(self.user_owner.id,))
+        response = self.client.get(url)
+
+        serializer_data = UserSerializer(self.user_owner).data
+
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        self.assertEqual(serializer_data, response.data)
+
+    def test_create(self):
+        self.assertEqual(2, User.objects.all().count())
+        url = reverse('user-list')
+        data = {
+            'id': 3,
+            'first_name': 'Ivan',
+            'last_name': 'Ivanov'
+        }
+        json_data = json.dumps(data)
+        response = self.client.post(url, data=json_data, content_type='application/json')
+        
+        self.assertEqual(status.HTTP_201_CREATED, response.status_code)
+        self.assertEqual(3, User.objects.all().count())
+
+    def test_update(self):
+        url = reverse('user-detail', args=(self.user_owner.id,))
+        data = {
+            'id': self.user_owner.id,
+            'first_name': 'Petr',
+            'last_name': 'Petrov'
+        }
+        json_data = json.dumps(data)
+        self.client.force_login(self.user_owner)
+        response = self.client.put(url, data=json_data, content_type='application/json')
+        
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        self.user_owner.refresh_from_db()
+        self.assertEqual('Petr', self.user_owner.first_name)
+
+    def test_delete(self):
+        self.assertEqual(2, User.objects.all().count())
+
+        url = reverse('user-detail', args=(self.user_owner.id,))
+        self.client.force_login(self.user_owner)
+        response = self.client.delete(url)
+        
+        self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
+        self.assertEqual(1, User.objects.all().count())
+
+    def test_permissions(self):
+        data = {
+            'id': self.user_owner.id,
+            'first_name': 'Ivan',
+            'last_name': 'Petrov'
+        }
+        json_data = json.dumps(data)
+        self.client.force_login(self.user_not_owner)
+
+        methods_list = ['put', 'delete']
+        for method in methods_list:
+            if method == 'put':
+                url = url = reverse('user-detail', args=(self.user_owner.id,))
+                response = self.client.put(url, data=json_data, content_type='application/json')
+            if method == 'delete':
+                url = url = reverse('user-detail', args=(self.user_owner.id,))
+                response = self.client.delete(url)
+            self.assertEqual(status.HTTP_403_FORBIDDEN, response.status_code)
 
 
-# class StudentApiTestCase(APITestCase):
-#     def test_get_list(self):
-#         user1 = User.objects.create(username='user1', first_name='Ivan', last_name='Petrov')
-#         user2 = User.objects.create(username='user2', first_name='Ivan', last_name='Sidorov')
-#         tutor = Tutor.objects.create(user_id=user1.id)
+class TutorApiTestCase(APITestCase):
+    def setUp(self):
+        self.user_admin = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Sidorov', role=Role.ADMIN)
+        self.user_tutor = User.objects.create(username='user2', password='user2', first_name='Ivan', last_name='Petrov', role=Role.TUTOR)
 
-#         subject1 = Subject.objects.create(name='Социология')
-#         subject2 = Subject.objects.create(name='Статистика')
-#         course = Course.objects.create(name='Психология', tutor_id=tutor.id)
-#         course.subjects.add(subject1)
-#         course.subjects.add(subject2)
+    def test_get_list(self):
+        tutor = Tutor.objects.create(user_id=self.user_tutor.id)
 
-#         study_group = StudyGroup.objects.create(name='q-2', course_id=course.id)
-#         student = Student.objects.create(user_id=user2.id, gender='MALE', study_group_id=study_group.id)
+        url = reverse('tutor-list')
+        response = self.client.get(url)
 
-#         url = reverse('student-list')
-#         response = self.client.get(url)
-#         serializer_data = StudentSerializer([student], many=True).data
-#         self.assertEqual(status.HTTP_200_OK, response.status_code)
-#         self.assertEqual(serializer_data, response.data)
+        serializer_data = TutorReadSerializer([tutor], many=True).data
+
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        self.assertEqual(serializer_data, response.data)
+
+    def test_get_item(self):
+        tutor = Tutor.objects.create(user_id=self.user_tutor.id)
+
+        url = reverse('tutor-detail', args=(tutor.id,))
+        response = self.client.get(url)
+
+        serializer_data = TutorReadSerializer(tutor).data
+
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        self.assertEqual(serializer_data, response.data)
+
+    def test_create(self):
+        self.assertEqual(0, Tutor.objects.all().count())
+        url = reverse('tutor-list')
+        data = {
+            'user': self.user_tutor.id
+        }
+        json_data = json.dumps(data)
+        self.client.force_login(self.user_admin)
+        response = self.client.post(url, data=json_data, content_type='application/json')
+        
+        self.assertEqual(status.HTTP_201_CREATED, response.status_code)
+        self.assertEqual(1, Tutor.objects.all().count())
+
+    def test_delete(self):
+        tutor = Tutor.objects.create(user_id=self.user_tutor.id)
+        self.assertEqual(1, Tutor.objects.all().count())
+
+        url = reverse('tutor-detail', args=(tutor.id,))
+        self.client.force_login(self.user_admin)
+        response = self.client.delete(url)
+        
+        self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
+        self.assertEqual(0, Tutor.objects.all().count())
+
+    def test_permissions(self):
+        tutor = Tutor.objects.create(user_id=self.user_tutor.id)
+        data = {
+            'user': self.user_tutor.id
+        }
+        json_data = json.dumps(data)
+        self.client.force_login(self.user_tutor)
+
+        methods_list = ['post', 'put', 'delete']
+        for method in methods_list:
+            if method == 'post':
+                url = reverse('tutor-list')
+                response = self.client.post(url, data=json_data, content_type='application/json')
+            if method == 'put':
+                url = url = reverse('tutor-detail', args=(tutor.id,))
+                response = self.client.put(url, data=json_data, content_type='application/json')
+            if method == 'delete':
+                url = url = reverse('tutor-detail', args=(tutor.id,))
+                response = self.client.delete(url)
+            self.assertEqual(status.HTTP_403_FORBIDDEN, response.status_code)
+
+
+class StudentApiTestCase(APITestCase):
+    def setUp(self):
+        self.user_tutor = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Sidorov', role=Role.TUTOR)
+        self.user_student = User.objects.create(username='user2', password='user2', first_name='Ivan', last_name='Petrov', role=Role.STUDENT)
+        self.user_admin = User.objects.create(username='user3', password='user3', first_name='Ivan', last_name='Ivanov', role=Role.ADMIN)
+        tutor = Tutor.objects.create(user_id=self.user_tutor.id)
+
+        self.subject1 = Subject.objects.create(name='Социология')
+        self.course = Course.objects.create(name='Психология', tutor_id=tutor.id)
+        self.course.subjects.add(self.subject1)
+
+        self.study_group = StudyGroup.objects.create(name='q-2', course_id=self.course.id)
+
+
+    def test_get_list(self):
+        student = Student.objects.create(user_id=self.user_student.id, gender=Gender.MALE, study_group_id=self.study_group.id)
+
+        url = reverse('student-list')
+        response = self.client.get(url)
+
+        serializer_data = StudentReadSerializer([student], many=True).data
+
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        self.assertEqual(serializer_data, response.data)
+
+    def test_get_item(self):
+        student = Student.objects.create(user_id=self.user_student.id, gender=Gender.MALE, study_group_id=self.study_group.id)
+
+        url = reverse('student-detail', args=(student.id,))
+        response = self.client.get(url)
+
+        serializer_data = StudentReadSerializer(student).data
+
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        self.assertEqual(serializer_data, response.data)
+
+    def test_create(self):
+        self.assertEqual(0, Student.objects.all().count())
+        url = reverse('student-list')
+        data = {
+            'user': self.user_student.id,
+            'gender': 'MALE',
+            'study_group': None
+        }
+        json_data = json.dumps(data)
+        self.client.force_login(self.user_tutor)
+        response = self.client.post(url, data=json_data, content_type='application/json')
+        
+        self.assertEqual(status.HTTP_201_CREATED, response.status_code)
+        self.assertEqual(1, Student.objects.all().count())
+
+    def test_update(self):
+        student = Student.objects.create(user_id=self.user_student.id, gender=Gender.MALE, study_group_id=None)
+
+        url = reverse('student-detail', args=(student.id,))
+        data = {
+            'user': self.user_student.id,
+            'gender': 'MALE',
+            'study_group': self.study_group.id
+        }
+        json_data = json.dumps(data)
+        self.client.force_login(self.user_tutor)
+        response = self.client.put(url, data=json_data, content_type='application/json')
+        
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        student.refresh_from_db()
+        self.assertEqual('q-2', self.study_group.name)
+
+    def test_delete(self):
+        student = Student.objects.create(user_id=self.user_student.id, gender=Gender.MALE, study_group_id=None)
+        self.assertEqual(1, Student.objects.all().count())
+
+        url = reverse('student-detail', args=(student.id,))
+        self.client.force_login(self.user_tutor)
+        response = self.client.delete(url)
+        
+        self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
+        self.assertEqual(0, Student.objects.all().count())
+
+
+    def test_permissions(self):
+        student = Student.objects.create(user_id=self.user_student.id, gender=Gender.MALE, study_group_id=None)
+        data = {
+            'user': self.user_student.id,
+            'gender': 'MALE',
+            'study_group': None
+        }
+        json_data = json.dumps(data)
+        self.client.force_login(self.user_admin)
+
+        methods_list = ['post', 'put', 'delete']
+        for method in methods_list:
+            if method == 'post':
+                url = reverse('student-list')
+                response = self.client.post(url, data=json_data, content_type='application/json')
+            if method == 'put':
+                url = url = reverse('student-detail', args=(student.id,))
+                response = self.client.put(url, data=json_data, content_type='application/json')
+            if method == 'delete':
+                url = url = reverse('student-detail', args=(student.id,))
+                response = self.client.delete(url)
+            self.assertEqual(status.HTTP_403_FORBIDDEN, response.status_code)
 
 
 class SubjectApiTestCase(APITestCase):
