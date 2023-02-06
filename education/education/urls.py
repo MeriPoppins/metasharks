@@ -17,7 +17,7 @@ from django.contrib import admin
 from django.urls import path
 from rest_framework.routers import SimpleRouter
 
-from study.api.v1.courses import CourseViewSet, SubjectViewSet, StudyGroupViewSet
+from study.api.v1.courses import CourseViewSet, SubjectViewSet, StudyGroupViewSet, ReportViewSet
 from study.api.v1.users import UserViewSet, TutorViewSet, StudentViewSet
 
 
@@ -29,6 +29,7 @@ router.register('api/v1/students', StudentViewSet)
 router.register('api/v1/courses', CourseViewSet)
 router.register('api/v1/subjects', SubjectViewSet)
 router.register('api/v1/study_groups', StudyGroupViewSet)
+router.register('api/v1/reports', ReportViewSet)
 
 
 urlpatterns = [

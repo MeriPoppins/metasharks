@@ -1,8 +1,10 @@
 from django.test import TestCase
+from datetime import datetime
 
-from study.models import User, Tutor, Student, StudyGroup, Subject, Course, Role, Gender
+from study.models import User, Tutor, Student, StudyGroup, Subject, Course, Role, Gender, Report, ReportType, Status
 from study.selializers import UserSerializer, TutorReadSerializer, TutorWriteSerializer, SubjectSerializer,\
-                            CourseSerializer, StudyGroupSerializer, StudentReadSerializer, StudentWriteSerializer
+                            CourseSerializer, StudyGroupSerializer, StudentReadSerializer, StudentWriteSerializer,\
+                            ReportSerializer
 
 
 class UsersSerializersTestCase(TestCase):
@@ -142,6 +144,7 @@ class StudyGroupSerializerTestCase(TestCase):
         ]
         self.assertEqual(expected_data, data)
 
+
 class StudentReadSerializerTestCase(TestCase):
     def test_ok(self):
         user1 = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Petrov', role=Role.TUTOR)
@@ -206,6 +209,22 @@ class StudentWriteSerializerTestCase(TestCase):
                 'user': user.id,
                 'gender': 'MALE',
                 'study_group': None
+            }
+        ]
+        self.assertEqual(expected_data, data)
+
+
+class ReportSerializersTestCase(TestCase):
+    def test_ok(self):
+        report = Report.objects.create(type=ReportType.COURSE, status=Status.CREATED, created_at=datetime.now(), file=None)
+        data = ReportSerializer([report], many=True).data
+        expected_data = [
+            {
+                'id': report.id,
+                'type': ReportType.COURSE,
+                'status': Status.CREATED,
+                'created_at': datetime.strftime(report.created_at, "%Y-%m-%dT%H:%M:%S"),
+                'file': None
             }
         ]
         self.assertEqual(expected_data, data)

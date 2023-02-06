@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.db.models.signals import post_save
+from django.db.models import Q
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 
@@ -15,6 +16,18 @@ class Role(models.TextChoices):
 class Gender(models.TextChoices):
     MALE = 'MALE', 'мужской'
     FEMALE = 'FEMALE', 'женский'
+
+
+class ReportType(models.TextChoices):
+    COURSE = 'course_report', 'отчет о направлениях'
+    GROUP = 'groups_report', 'отчет о группах'
+
+
+class Status(models.TextChoices):
+    CREATED = 'created', 'создан'
+    PROCESSED = 'processed', 'обрабатывается'
+    FALIED = 'falied', 'завершен с ошибкой'
+    COMPLETED = 'completed', 'завершен успешно'
 
 
 class User(AbstractUser):
@@ -79,6 +92,23 @@ class Course(models.Model):
     class Meta:
         verbose_name = 'Курс'
         verbose_name_plural = 'Курсы'
+
+
+class Report(models.Model):
+    type = models.CharField(max_length=50, choices=ReportType.choices, default=ReportType.COURSE, verbose_name='Тип отчета')
+    status = models.CharField(max_length=50, choices=Status.choices, default=Status.CREATED, verbose_name='Статус отчета')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    file = models.FileField(upload_to=f'reports/', verbose_name='Ссылка на скачивание', blank=True, null=True)
+
+    def __str__(self):
+        return f'{self.type} {self.created_at}'
+
+    class Meta:
+        verbose_name = 'Отчет'
+        verbose_name_plural = 'Отчеты'
+        constraints = [
+            models.UniqueConstraint(fields=['type'], condition=(Q(status=Status.CREATED) | Q(status=Status.PROCESSED)), name='unique_status_type')
+        ]
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

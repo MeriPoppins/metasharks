@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db import transaction
 
-from study.models import Course, Subject, StudyGroup, Tutor
-from study.selializers import CourseSerializer, SubjectSerializer, StudyGroupSerializer
+from study.models import Course, Subject, StudyGroup, Tutor, Report
+from study.selializers import CourseSerializer, SubjectSerializer, StudyGroupSerializer, ReportSerializer
 from study.permissions import IsAdmin, IsTutor
 
 
@@ -70,3 +70,9 @@ class StudyGroupViewSet(ModelViewSet):
     def update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
+
+
+class ReportViewSet(ModelViewSet):
+    queryset = Report.objects.all()
+    serializer_class = ReportSerializer
+    permission_classes = [IsAdmin]

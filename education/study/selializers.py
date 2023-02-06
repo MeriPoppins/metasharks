@@ -1,6 +1,7 @@
+from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
-from .models import User, Tutor, Student, StudyGroup, Subject, Course
+from .models import User, Tutor, Student, StudyGroup, Subject, Course, Report
 
 
 class UserSerializer(ModelSerializer):
@@ -55,3 +56,11 @@ class StudentWriteSerializer(ModelSerializer):
     class Meta:
         model = Student
         fields = ('user', 'gender', 'study_group')
+
+
+class ReportSerializer(ModelSerializer):
+    created_at = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S")
+
+    class Meta:
+        model = Report
+        fields = '__all__'

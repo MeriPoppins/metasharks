@@ -1,11 +1,13 @@
 import json
+from datetime import datetime
 from django.urls import reverse
+from django.db.utils import IntegrityError
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from study.models import User, Tutor, Student, StudyGroup, Subject, Course, Role, Gender
+from study.models import User, Tutor, Student, StudyGroup, Subject, Course, Role, Gender, Report, ReportType, Status
 from study.selializers import UserSerializer, TutorReadSerializer, SubjectSerializer,\
-                            CourseSerializer, StudyGroupSerializer, StudentReadSerializer
+                            CourseSerializer, StudyGroupSerializer, StudentReadSerializer, ReportSerializer
 
 
 class UsersApiTestCase(APITestCase):
@@ -240,7 +242,6 @@ class StudentApiTestCase(APITestCase):
         self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
         self.assertEqual(0, Student.objects.all().count())
 
-
     def test_permissions(self):
         student = Student.objects.create(user_id=self.user_student.id, gender=Gender.MALE, study_group_id=None)
         data = {
@@ -327,7 +328,6 @@ class SubjectApiTestCase(APITestCase):
         self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
         self.assertEqual(1, Subject.objects.all().count())
 
-
     def test_permissions(self):
         data = {
             'name': 'Литература'
@@ -347,7 +347,6 @@ class SubjectApiTestCase(APITestCase):
                 url = url = reverse('subject-detail', args=(self.subject1.id,))
                 response = self.client.delete(url)
             self.assertEqual(status.HTTP_403_FORBIDDEN, response.status_code)
-
 
 
 class CourseApiTestCase(APITestCase):
@@ -432,7 +431,6 @@ class CourseApiTestCase(APITestCase):
         
         self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
         self.assertEqual(0, Course.objects.all().count())
-
 
     def test_permissions(self):
         data = {
@@ -559,7 +557,6 @@ class StudyGroupApiTestCase(APITestCase):
         self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
         self.assertEqual(0, StudyGroup.objects.all().count())
 
-
     def test_permissions(self):
         data = {
             'name': 'q-2',
@@ -598,5 +595,92 @@ class StudyGroupApiTestCase(APITestCase):
                 response = self.client.put(url, data=json_data, content_type='application/json')
             if method == 'delete':
                 url = url = reverse('studygroup-detail', args=(self.study_group.id,))
+                response = self.client.delete(url)
+            self.assertEqual(status.HTTP_403_FORBIDDEN, response.status_code)
+
+
+class ReportApiTestCase(APITestCase):
+    def setUp(self):
+        self.user_admin = User.objects.create(username='user1', password='user1', first_name='Ivan', last_name='Petrov', role=Role.ADMIN)
+        self.user_tutor = User.objects.create(username='user2', password='user2', first_name='Ivan', last_name='Sidorov', role=Role.TUTOR)
+        self.report = Report.objects.create(type=ReportType.COURSE, status=Status.CREATED, created_at=datetime.now(), file=None)
+
+    def test_get_list(self):
+        url = reverse('report-list')
+        response = self.client.get(url)
+        serializer_data = ReportSerializer([self.report], many=True).data
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        self.assertEqual(serializer_data, response.data)
+
+    def test_get_item(self):
+        url = reverse('report-detail', args=(self.report.id,))
+        response = self.client.get(url)
+
+        serializer_data = ReportSerializer(self.report).data
+
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        self.assertEqual(serializer_data, response.data)
+
+    def test_create(self):
+        self.assertEqual(1, Report.objects.all().count())
+        url = reverse('report-list')
+        data = {
+            'id': 2,
+            'type': ReportType.GROUP,
+            'status': Status.CREATED,
+            'created_at': datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M:%S"),
+            'file': None
+        }
+        json_data = json.dumps(data)
+        self.client.force_login(self.user_admin)
+        response = self.client.post(url, data=json_data, content_type='application/json')
+        
+        self.assertEqual(status.HTTP_201_CREATED, response.status_code)
+        self.assertEqual(2, Report.objects.all().count())
+
+    def test_create_duplicate(self):
+        url = reverse('report-list')
+        data = {
+            'id': 2,
+            'type': ReportType.COURSE,
+            'status': Status.CREATED,
+            'created_at': datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M:%S"),
+            'file': None
+        }
+        json_data = json.dumps(data)
+        self.client.force_login(self.user_admin)
+
+        try:
+            response = self.client.post(url, data=json_data, content_type='application/json')
+        except IntegrityError:
+            pass
+
+    def test_delete(self):
+        self.assertEqual(1, Report.objects.all().count())
+        url = reverse('report-detail', args=(self.report.id,))
+        self.client.force_login(self.user_admin)
+        response = self.client.delete(url)
+        
+        self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
+        self.assertEqual(0, Report.objects.all().count())
+
+    def test_permissions(self):
+        data = {
+            'id': 2,
+            'type': ReportType.GROUP,
+            'status': Status.CREATED,
+            'created_at': datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M:%S"),
+            'file': None
+        }
+        json_data = json.dumps(data)
+        self.client.force_login(self.user_tutor)
+
+        methods_list = ['post', 'delete']
+        for method in methods_list:
+            if method == 'post':
+                url = reverse('report-list')
+                response = self.client.post(url, data=json_data, content_type='application/json')
+            if method == 'delete':
+                url = url = reverse('report-detail', args=(self.report.id,))
                 response = self.client.delete(url)
             self.assertEqual(status.HTTP_403_FORBIDDEN, response.status_code)
